@@ -21,7 +21,7 @@
 from common.provider import ContentProvider
 from provider import *
 import logging
-import subprocess, shlex, sys, getopt
+import subprocess, shlex, sys, getopt, time
 from enum import Enum
 
 _PROVIDERS = {c.__name__: c for c in ContentProvider.__subclasses__()}
@@ -29,6 +29,7 @@ _PROVIDERS = {c.__name__: c for c in ContentProvider.__subclasses__()}
 _DEFAULT_PROVIDER = 'AtresplayerProvider'
 _DEFAULT_SINK = 'ffplay'
 _DEFAULT_USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:86.0) Gecko/20100101 Firefox/86.0'
+_AVSOURCE_RETRY_THRESHOLD = 10
 
 def usage():
     print("Usage: %s [OPTION]... RESOURCE\n" % sys.argv[0])
@@ -154,7 +155,16 @@ def main():
 
             sinkCmdline += ['-']
             sink = subprocess.Popen(sinkCmdline, stdin=subprocess.PIPE)
-            source.run(sink)
+            while True:
+                startTime = time.perf_counter()
+                retry = source.run(sink)
+                endTime = time.perf_counter()
+
+                if not retry or (endTime - startTime) < _AVSOURCE_RETRY_THRESHOLD:
+                    break
+                logging.info('A/V source died prematurely; retrying...')
+                info = p.get_stream_info(args[0])
+                source = p.get_av_source(info, alternative)
     except (ValueError, RuntimeError) as err:
         print(err)
 

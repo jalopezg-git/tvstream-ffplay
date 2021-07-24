@@ -10,6 +10,7 @@ class AVSource:
         """ Run the A/V source until sink terminates.
 
         @param sink An instance of the subprocess.Popen class.
+        @return `True` if the operation should be retried (if possible); `False` otherwise
         """
         pass
 
@@ -48,13 +49,14 @@ class CurlMpegtsSequenceAVSource(AVSource):
 
     def run(self, sink):
         while True:
-            argv = ['curl', '--silent', '--fail-early']
+            argv = ['curl', '--silent', '--fail', '--fail-early']
             argv += self.addHeaders
             argv += [self.urlTemplate % i for i in range(self.startAt,
                                                          self.startAt + self.urlsPerProc)]
 
             logging.debug('Spawning process: ' + shlex.join(argv))
             curl = subprocess.Popen(argv, stdout=sink.stdin)
-            if curl.wait() != 0:
-                break
+            returncode = curl.wait()
+            if returncode != 0:
+                return (returncode == 22) # curl(1), EXIT CODES section: 22: HTTP page not retrieved
             self.startAt += self.urlsPerProc
