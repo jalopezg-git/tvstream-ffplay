@@ -154,7 +154,7 @@ def main():
             source = p.get_av_source(info, alternative)
 
             sinkCmdline += ['-']
-            sink = subprocess.Popen(sinkCmdline, stdin=subprocess.PIPE)
+            sink = subprocess.Popen(sinkCmdline, stdin=subprocess.PIPE, bufsize=0, pipesize=1048576)
             while True:
                 startTime = time.perf_counter()
                 retry = source.run(sink)
