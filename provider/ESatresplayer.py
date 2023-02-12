@@ -81,8 +81,11 @@ class AtresplayerProvider(ContentProvider):
 
         ts = M3UPlaylist(self.http.open(playlistUrl).read().decode('utf-8'),
                          expectExtm3u=True)
-        seq = ts[0]['attrs']['EXT-X-MEDIA-SEQUENCE']
-        return {'template': prefix + ts[0]['href'].replace(seq, '%s'),
+        # Do not rely on the `EXT-X-MEDIA-SEQUENCE` attribute as it has been seen to carry incorrect
+        # values; instead use the sequence number in the href string
+        r = re.compile(r'_([0-9]+).ts')
+        seq = re.search(r, ts[0]['href'])[1]
+        return {'template': prefix + re.sub(r, '_%s.ts', ts[0]['href']),
                 'start_at': int(seq)}
 
     def get_av_source(self, streamInfo, alternative=-1):
