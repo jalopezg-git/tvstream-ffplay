@@ -4,6 +4,7 @@ from common.avsource import CurlMpegtsSequenceAVSource
 from common.m3u import M3UPlaylist
 from common.provider import ContentProvider
 
+# Provider for [ES] Atresplayer (https://atresplayer.com/).  Atresplayer conforms to RFC 8216 for HTTP Live Streaming
 class AtresplayerProvider(ContentProvider):
     _URL_AUTH = 'https://account.atresplayer.com/auth/v1/login'
     _URL_CHANNELS = 'https://api.atresplayer.com/client/v1/info/channels'
