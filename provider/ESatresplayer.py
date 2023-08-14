@@ -91,6 +91,6 @@ class AtresplayerProvider(ContentProvider):
     def get_av_source(self, streamInfo, alternative=-1):
         ts = self.get_mpegts_url(streamInfo, alternative)
         return CurlMpegtsSequenceAVSource(ts['template'], ts['start_at'],
-                                          self.params['urls-per-proc'],
+                                          int(self.params['urls-per-proc']),
                                           self.params['user-agent'],
                                           self.cookieJar)
