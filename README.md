@@ -13,6 +13,10 @@ consuming data on stdin should work, e.g. vlc.
 Currently, the only supported provider is ATRESplayer (ES - Atresmedia). There
 is work in progress to support other content providers.
 
+![ATRESMEDIA holds the rights of the image shown in the `ffplay` window](https://github.com/jalopezg-git/tvstream-ffplay/assets/36541918/c049469e-05d5-43d0-9071-58fff4dabc4c)
+
+(The screenshot above is for demonstration purposes; ATRESMEDIA holds the rights of the image shown in the `ffplay` window above.)
+
 ## Dependencies
 This script depends on the `ffmpeg` and `curl` packages.  Chances are that those
 are already installed on your system; if not, most certainly they should be
