@@ -25,16 +25,16 @@ class M3UPlaylist:
         if expectExtm3u and not self.extm3u:
             raise ValueError("Expected #EXTM3U header")
 
-        attrs = {}
+        attrs = []
         for line in lines:
             if not line:
                 continue
             m = re.match('#([^:]+):?(.*)', line)
             if m:
-                attrs[m[1]] = m[2].strip()
+                attrs += [(m[1], m[2].strip())]
             else:
                 self.ents += [{'href': line, 'attrs': attrs}]
-                attrs = {}
+                attrs = []
 
     def __len__(self):
         return len(self.ents)
