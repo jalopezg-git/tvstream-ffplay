@@ -41,3 +41,11 @@ class M3UPlaylist:
 
     def __getitem__(self, key):
         return self.ents[key]
+
+    @staticmethod
+    def parse_kv_attr(kvs):
+        """ Return a dictionary that is the result of parsing a string consisting of a
+        comma-separated list of `key=value` pairs.
+        """
+        # TODO: improve regex matching of quoted values
+        return {k: v for k, v in re.findall(r'([A-Za-z0-9_-]+)\s*=\s*"?([^"=,]+)"?', kvs)}
