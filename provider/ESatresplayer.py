@@ -68,6 +68,21 @@ class AtresplayerProvider(ContentProvider):
         except Exception:
             raise RuntimeError("Couldn't get stream information.  Did you forget to authenticate?")
 
+    def parse_media_playlist(self, prefix, playlistUrl):
+        """
+        Parse a media playlist (RFC 8216) and return a tuple that holds the URL
+        template and initial media sequence.  This tuple can be used to construct
+        a CurlMpegtsSequenceAVSource.
+        """
+        ts = M3UPlaylist(self.http.open(playlistUrl).read().decode('utf-8'),
+                         expectExtm3u=True)
+        # Do not rely on the `EXT-X-MEDIA-SEQUENCE` attribute as it has been seen to carry incorrect
+        # values; instead use the sequence number in the href string
+        r = re.compile(r'_([0-9]+).ts')
+        seq = re.search(r, ts[0]['href'])[1]
+        return (prefix + re.sub(r, '_%s.ts', ts[0]['href']),
+                int(seq))
+
     def get_mpegts_url(self, streamInfo, alternative):
         """ Get the base URL and current MPEG TS sequence number.  Specifically,
         this downloads and parses a `bitrate_xxx.m3u8` playlist.
@@ -79,19 +94,12 @@ class AtresplayerProvider(ContentProvider):
         """
         prefix = streamInfo['__prefix']
         playlistUrl = prefix + streamInfo['alt'][alternative]['href']
+        return self.parse_media_playlist(prefix, playlistUrl)
 
-        ts = M3UPlaylist(self.http.open(playlistUrl).read().decode('utf-8'),
-                         expectExtm3u=True)
-        # Do not rely on the `EXT-X-MEDIA-SEQUENCE` attribute as it has been seen to carry incorrect
-        # values; instead use the sequence number in the href string
-        r = re.compile(r'_([0-9]+).ts')
-        seq = re.search(r, ts[0]['href'])[1]
-        return {'template': prefix + re.sub(r, '_%s.ts', ts[0]['href']),
-                'start_at': int(seq)}
 
     def get_av_source(self, streamInfo, alternative=-1):
-        ts = self.get_mpegts_url(streamInfo, alternative)
-        return CurlMpegtsSequenceAVSource(ts['template'], ts['start_at'],
+        urlTemplateAndInitSeq = self.get_mpegts_url(streamInfo, alternative)
+        return CurlMpegtsSequenceAVSource(urlTemplateAndInitSeq,
                                           int(self.params['urls-per-proc']),
                                           self.params['user-agent'],
                                           self.cookieJar)
