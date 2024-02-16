@@ -22,7 +22,7 @@ class CurlMpegtsSequenceAVSource(AVSource):
     the stdout is piped to the sink's stdin.  On process termination, a new
     process is spawned reusing the same pipe, e.g.
 
-      src = CurlMpegtsSequenceAVSource("https://site.org/mpegts/%s.ts", 1000, 2)
+      src = CurlMpegtsSequenceAVSource(("https://site.org/mpegts/%s.ts", 1000), 2)
 
     the command line for the first two spawned processes is
     ```
@@ -30,17 +30,16 @@ class CurlMpegtsSequenceAVSource(AVSource):
     curl https://site.org/mpegts/1002.ts https://site.org/mpegts/1003.ts
     ```
     """
-    def __init__(self, urlTemplate, startAt, urlsPerProc, userAgent=None, cookies=[]):
+    def __init__(self, urlTemplateAndInitSeq, urlsPerProc, userAgent=None, cookies=[]):
         """ Constructs a CurlMpegtsSequenceAVSource.
 
-        @param urlTemplate The template to use for URL generation, e.g. `https://domain.tld/path/to/resource/%s.ts`
-        @param startAt Sequence number to use in the first URL
+        @param urlTemplateAndInitSeq A tuple that holds the template to use for URL generation, e.g.
+        `https://domain.tld/path/to/resource/%s.ts` and the sequence number to use in the first URL
         @param urlsPerProc Number of URLs per `curl` process
         @param userAgent Value for the `User-agent` HTTP header
         @param cookies An array of http.cookiejar.Cookie instances
         """
-        self.urlTemplate = urlTemplate
-        self.startAt = startAt
+        self.urlTemplateAndInitSeq = urlTemplateAndInitSeq
         self.urlsPerProc = urlsPerProc
         self.addHeaders = []
         if userAgent:
@@ -61,7 +60,7 @@ class CurlMpegtsSequenceAVSource(AVSource):
 
     def run(self, sink):
         CurlMpegtsSequenceAVSource.curl_loop(['curl', '--silent', '--fail', '--fail-early'] + self.addHeaders,
-                                             self.urlTemplate, self.startAt, self.urlsPerProc, sink.stdin)
+                                             *self.urlTemplateAndInitSeq, self.urlsPerProc, sink.stdin)
         return sink.poll() == None
 
 class CurlMpegtsSequenceMuxAVSource(CurlMpegtsSequenceAVSource):
@@ -69,21 +68,21 @@ class CurlMpegtsSequenceMuxAVSource(CurlMpegtsSequenceAVSource):
     the video and audio data.  An extra `ffmpeg` process is used to multiplex
     both streams before feeding it to the sink.
 
-    In contrast to `CurlMpegtsSequenceAVSource`, the constructor takes an array of
-    template URLs; an extra `curl` process is spawned for each element in the array.
+    In contrast to `CurlMpegtsSequenceAVSource`, the constructor takes an array of template URLs
+    and initial sequence numbers; an extra `curl` process is spawned for each element in the array.
     ```
     """
     def run(self, sink):
         threads = []
         pipes = []
         argv_ffmpeg_input = []
-        for urlTemplate in self.urlTemplate:
+        for T in self.urlTemplateAndInitSeq:
             pipes += [os.pipe()]
             argv_ffmpeg_input += ['-i', ('pipe:%i' % pipes[-1][0])]
             curl_fhStdout = os.fdopen(pipes[-1][1], 'wb', buffering=0)
             threads += [Thread(target=CurlMpegtsSequenceAVSource.curl_loop,
                                args=[['curl', '--silent', '--fail', '--fail-early'] + self.addHeaders,
-                                     urlTemplate, self.startAt, self.urlsPerProc, curl_fhStdout])]
+                                     *T, self.urlsPerProc, curl_fhStdout])]
             threads[-1].start()
 
         mux = subprocess.Popen(['ffmpeg', '-loglevel', 'quiet',
