@@ -113,6 +113,7 @@ class AtresplayerProvider(ContentProvider):
         CurlMpegtsSequenceMuxAVSource instance.
         """
         audio_playlists, audio_default = self.collect_audio_playlists(streamInfo['alt'])
+        # TODO: infrastructure should be extended to convey both the video and audio streams to use
         if audio_default == -1:
             logging.warning("Couldn't determine the default audio playlist; using 0")
             audio_default = 0

@@ -66,10 +66,26 @@ class CurlMpegtsSequenceAVSource(AVSource):
 class CurlMpegtsSequenceMuxAVSource(CurlMpegtsSequenceAVSource):
     """ An A/V source that spawns different `curl` processes to separately fetch
     the video and audio data.  An extra `ffmpeg` process is used to multiplex
-    both streams before feeding it to the sink.
+    both streams before feeding it to the sink (see below).
+
+    +------------+
+    | `curl` [0] |----.
+    +------------+     \     +----------------------------+
+                        `____| ffmpeg -c:v copy -c:a copy |-->-->-->-->-- [SINK PROCESS]
+                        _____|        -f mpegts -         |
+    +------------+     /     +----------------------------+
+    | `curl` [1] |----'
+    +------------+
+          .
+          .
 
     In contrast to `CurlMpegtsSequenceAVSource`, the constructor takes an array of template URLs
-    and initial sequence numbers; an extra `curl` process is spawned for each element in the array.
+    and initial sequence numbers; an extra `curl` process is spawned for each element in the array, e.g.
+    ```
+          src = CurlMpegtsSequenceMuxAVSource({
+                                                  ("https://site.org/mpegts_video/%s.ts", 1000),
+                                                  ("https://site.org/mpegts_audio/%s.ts", 2000),
+                                              }, 2)
     ```
     """
     def run(self, sink):
